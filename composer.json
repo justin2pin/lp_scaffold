@@ -12,6 +12,6 @@
   "minimum-stability": "dev",
   "require": {
     "drupal/layout_paragraphs": "^2",
-    "drupal/stories": "^"
+    "drupal/stories": "^2"
   }
 }
