@@ -11,6 +11,7 @@
   "license": "GPL-2.0+",
   "minimum-stability": "dev",
   "require": {
-    "drupal/layout_paragraphs": "^2"
+    "drupal/layout_paragraphs": "^2",
+    "drupal/stories": "^"
   }
 }
