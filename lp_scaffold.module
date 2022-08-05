@@ -1,0 +1,72 @@
+<?php
+
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\paragraphs\Entity\ParagraphsType;
+
+function lp_scaffold_setup() {
+
+  $paragraphs_type = ParagraphsType::load('section');
+  if (!$paragraphs_type) {
+    // Create the section paragraph type.
+    $paragraphs_type = ParagraphsType::create([
+      'id' => 'section',
+      'label' => 'Section',
+      'enabled_behaviors' => [
+        'layout_paragraphs',
+      ],
+      'behavior_plugins' => [
+        'layout_paragraphs' => [
+          'enabled' => TRUE,
+          'available_layouts' => [
+            'layout_onecol' => 'One Column',
+            'layout_twocol' => 'Two Column',
+            'layout_threecol_25_50_25' => 'Three column 25/50/25',
+            'layout_threecol_33_34_33' => 'Three column 33/34/33',
+          ],
+        ],
+      ],
+    ]);
+    $paragraphs_type->save();
+  }
+
+  $field_storage = FieldStorageConfig::loadByName('node', 'field_content');
+  if (!$field_storage) {
+    // Add a paragraphs field.
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => 'field_content',
+      'entity_type' => 'node',
+      'type' => 'entity_reference_revisions',
+      'cardinality' => '-1',
+      'settings' => [
+        'target_type' => 'paragraph',
+      ],
+    ]);
+    $field_storage->save();
+  }
+  $field_config = FieldConfig::loadByName('node', 'page', 'field_content');
+  if (!$field_config) {
+    $field = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'bundle' => 'page',
+      'label' => 'Content',
+      'settings' => [
+        'handler' => 'default:paragraph',
+        'handler_settings' => [
+          'target_bundles' => NULL,
+          'negate' => TRUE,
+        ],
+      ],
+    ]);
+    $field->save();
+  }
+
+  $form_display = \Drupal::service('entity_display.repository')->getFormDisplay('node', 'page');
+  $form_display = $form_display->setComponent('field_content', ['type' => 'layout_paragraphs']);
+  $form_display->save();
+
+  $view_display = \Drupal::service('entity_display.repository')->getViewDisplay('node', 'page');
+  $view_display->setComponent('field_content', ['type' => 'layout_paragraphs']);
+  $view_display->save();
+
+}

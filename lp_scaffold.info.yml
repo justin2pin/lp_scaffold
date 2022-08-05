@@ -1,0 +1,7 @@
+name: Layout Paragraphs Scaffold
+description: Basic setup for a layout paragraphs website
+type: module
+core_version_requirement: ^8 || ^9
+dependencies:
+  - layout_paragraphs:layout_paragraphs
+  - stories:stories

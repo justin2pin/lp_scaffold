@@ -1,0 +1,10 @@
+<?php
+
+use Drupal\paragraphs\Entity\ParagraphsType;
+
+/**
+ * Implements hook_install().
+ */
+function lp_scaffold_install() {
+  lp_scaffold_setup();
+}
