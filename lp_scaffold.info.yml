@@ -6,3 +6,5 @@ dependencies:
   - layout_paragraphs:layout_paragraphs
   - stories:stories
   - stories:stories_media
+  - slick:slick
+  - replicate_ui
