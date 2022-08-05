@@ -1,0 +1,16 @@
+{
+  "name": "justin2pin/lp_scaffold",
+  "type": "drupal-module",
+  "description": "LP Scaffold",
+  "keywords": ["Drupal"],
+  "homepage": "https://github.com/justin2pin/lp_scaffold",
+  "support": {
+    "issues": "https://github.com/justin2pin/lp_scaffold/issues",
+    "source": "https://github.com/justin2pin/lp_scaffold.git"
+  },
+  "license": "GPL-2.0+",
+  "minimum-stability": "dev",
+  "require": {
+    "drupal/layout_paragraphs": "^2"
+  }
+}
