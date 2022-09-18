@@ -5,11 +5,24 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\paragraphs\Entity\ParagraphsType;
 
+
+function lp_scaffold_helper() {
+  // Set target bundles for curated content.
+  if ($field_config = FieldConfig::loadByName('paragraph', 'container', 'field_left_column')) {
+    $settings = $field_config->get('settings');
+    echo json_encode($settings);
+    die();
+    // $settings['handler_settings']['target_bundles'] = ['page' => TRUE, 'article' => TRUE];
+    // $field_config->set('settings', $settings);
+    // $field_config->save();
+  }
+}
+
 function lp_scaffold_setup() {
 
+  // Create and configure a Layout Paragraphs section paragraph type.
   $paragraphs_type = ParagraphsType::load('section');
   if (!$paragraphs_type) {
-    // Create the section paragraph type.
     $paragraphs_type = ParagraphsType::create([
       'id' => 'section',
       'label' => 'Section',
@@ -31,45 +44,60 @@ function lp_scaffold_setup() {
     $paragraphs_type->save();
   }
 
-  $field_storage = FieldStorageConfig::loadByName('node', 'field_content');
-  if (!$field_storage) {
-    // Add a paragraphs field.
-    $field_storage = FieldStorageConfig::create([
-      'field_name' => 'field_content',
-      'entity_type' => 'node',
-      'type' => 'entity_reference_revisions',
-      'cardinality' => '-1',
-      'settings' => [
-        'target_type' => 'paragraph',
-      ],
+  // Create and configure a container paragraph to demonstrate the old way.
+  $paragraphs_type = ParagraphsType::load('container');
+  if (!$paragraphs_type) {
+    $paragraphs_type = ParagraphsType::create([
+      'id' => 'container',
+      'label' => 'Container',
     ]);
-    $field_storage->save();
+    $paragraphs_type->save();
+
+    // Enable all paragraphs EXCEPT section and container.
+    $target_bundles = [
+      'section' => 'section',
+      'container' => 'container',
+    ];
+    $bundles = \Drupal::service('entity_type.bundle.info')->getBundleInfo('paragraph');
+    foreach(array_keys($bundles) as $index => $bundle_name){
+      $target_bundles_drag_drop[$bundle_name] = [
+        'weight' => $index,
+        'enabled' => isset($target_bundles[$bundle_name]),
+      ];
+    }
+    $handler_settings = [
+      'target_bundles' => $target_bundles,
+      'target_bundles_drag_drop' => $target_bundles_drag_drop,
+      'negate' => TRUE,
+    ];
+    _lp_scaffold_make_paragraph_field('paragraph', 'container', 'field_left_column', 'Left Column', $handler_settings);
+    _lp_scaffold_make_paragraph_field('paragraph', 'container', 'field_right_column', 'Right Column', $handler_settings);
   }
-  $field_config = FieldConfig::loadByName('node', 'page', 'field_content');
-  if (!$field_config) {
-    $field = FieldConfig::create([
-      'field_storage' => $field_storage,
-      'bundle' => 'page',
-      'label' => 'Content',
-      'settings' => [
-        'handler' => 'default:paragraph',
-        'handler_settings' => [
-          'target_bundles' => NULL,
-          'negate' => TRUE,
+
+  // Add the main paragraphs reference field.
+  _lp_scaffold_make_paragraph_field('node', 'page', 'field_content', 'Content');
+
+  // Set target bundles for curated content.
+  if ($field_config = FieldConfig::loadByName('paragraph', 'stories_curated_content', 'field_stories_curated_content')) {
+    $field_config->set('settings', [
+      'handler' => 'default:node',
+      'handler_settings' => [
+        'target_bundles' => [
+          'article' => 'article',
+          'page' => 'page',
         ],
+        'sort' => [
+          'field' => '_none',
+          'direction' => 'ASC',
+        ],
+        'auto_create' => NULL,
+        'auto_create_bundle' => 'page',
       ],
     ]);
-    $field->save();
+    $field_config->save();
   }
 
-  $form_display = \Drupal::service('entity_display.repository')->getFormDisplay('node', 'page');
-  $form_display = $form_display->setComponent('field_content', ['type' => 'layout_paragraphs']);
-  $form_display->save();
-
-  $view_display = \Drupal::service('entity_display.repository')->getViewDisplay('node', 'page');
-  $view_display->setComponent('field_content', ['type' => 'layout_paragraphs']);
-  $view_display->save();
-
+  // Make slideshows render as simple slideshows.
   $view_display = \Drupal::service('entity_display.repository')->getViewDisplay('media', 'slideshow');
   $view_display
     ->setComponent('field_media_slideshow', ['type' => 'slick_media'])
@@ -84,5 +112,62 @@ function lp_scaffold_setup() {
   $config->save();
 
   Cache::invalidateTags(['entity_types', 'views_data']);
+
+}
+
+/**
+ * Creates a paragraph field for the privided entity type and bundle.
+ */
+function _lp_scaffold_make_paragraph_field(
+  $entity_type,
+  $bundle,
+  $field_name,
+  $field_label,
+  $handler_settings = [],
+  $widget = 'paragraphs',
+  $formatter = 'entity_reference_revisions_entity_view'
+) {
+  if (empty($handler_settings)) {
+    $handler_settings = [
+      'target_bundles' => NULL,
+      'negate' => TRUE,
+    ];
+  }
+  $field_storage = FieldStorageConfig::loadByName($entity_type, $field_name);
+  if (!$field_storage) {
+    // Add a paragraphs field.
+    $field_storage = FieldStorageConfig::create([
+      'field_name' => $field_name,
+      'entity_type' => $entity_type,
+      'type' => 'entity_reference_revisions',
+      'cardinality' => '-1',
+      'settings' => [
+        'target_type' => 'paragraph',
+      ],
+    ]);
+    $field_storage->save();
+  }
+  $field_config = FieldConfig::loadByName($entity_type, $bundle, $field_name);
+  if (!$field_config) {
+    $field = FieldConfig::create([
+      'field_storage' => $field_storage,
+      'bundle' => $bundle,
+      'label' => $field_label,
+      'settings' => [
+        'handler' => 'default:paragraph',
+        'handler_settings' => $handler_settings,
+      ],
+    ]);
+    $field->save();
+  }
+
+  $form_display = \Drupal::service('entity_display.repository')->getFormDisplay($entity_type, $bundle);
+  $form_display = $form_display->setComponent($field_name, ['type' => $widget]);
+  $form_display->save();
+
+  $view_display = \Drupal::service('entity_display.repository')->getViewDisplay($entity_type, $bundle);
+  $view_display->setComponent($field_name, ['type' => $formatter]);
+  $view_display->save();
+
 
 }
